@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\TestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +21,10 @@ use App\Http\Controllers\ExpenseController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+Route::get('/test', [TestController::class, 'index'])->name('test');
+
+
 
 Route::get('/', function () {
     return view('welcome');
