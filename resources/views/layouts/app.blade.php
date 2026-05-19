@@ -46,7 +46,7 @@
     </head>
     <body class="font-sans antialiased bg-zinc-100 text-zinc-950">
         <div
-            x-data="{ sidebarOpen: false, inventoryOpen: false }"
+            x-data="{ sidebarOpen: false, orderOpen: {{ request()->routeIs('admin.orders*') ? 'true' : 'false' }}, inventoryOpen: {{ request()->routeIs('admin.products*') || request()->routeIs('admin.restock*') || request()->routeIs('admin.purchases*') || request()->routeIs('admin.product.movement*') || request()->routeIs('admin.product.summary*') ? 'true' : 'false' }} }"
             class="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]"
         >
             @include('layouts.sidebar')

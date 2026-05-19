@@ -9,18 +9,20 @@
         //     }
         // }
 
-        $displayProducts = $products->isNotEmpty()
-            ? $products
-            : collect([
-                (object) [
-                    'image' => null,
-                    'sku' => 'SK001',
-                    'name' => 'P1',
-                    'purchase_price' => 100,
-                    'sale_price' => 150,
-                    'current_stock' => 46,
-                ],
-            ]);
+        $product_name=$product_sku=$product_img=null;
+
+        if($single_product != null){
+            $product_name = $single_product->name ?? 'N/A';
+            $product_sku = $single_product->sku ?? 'N/A';
+            $product_img = $single_product->image ? asset('storage/' . $single_product->image) : null;
+        }
+
+        if(is_null($products) || $products->isEmpty()) {
+            $displayProducts = null;
+        } else {
+            $displayProducts = $products;
+        }
+        
     @endphp
 
     <section class="min-h-[calc(100vh-4rem)] bg-zinc-50 px-5 py-6">
@@ -71,114 +73,134 @@
 
         <div class="overflow-hidden rounded-lg bg-white shadow-md ring-1 ring-zinc-100">
             <div class="overflow-x-auto">
-                @if(!request()->has('action'))    
-                    <table class="min-w-full table-fixed text-left">
-                        <thead class="border-b border-zinc-200 bg-zinc-50">
-                            <tr>
-                                <th class="w-20 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Image</th>
-                                <th class="w-36 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">SKU</th>
-                                <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Name</th>
-                                <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Purchase Price</th>
-                                <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Sale Price</th>
-                                <th class="w-36 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Stock</th>
-                                <th class="w-32 px-4 py-5 text-right text-xs font-extrabold uppercase text-slate-400">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100">
-                            @foreach ($displayProducts as $product)
-                                <tr class="bg-white transition hover:bg-zinc-50">
-                                    <td class="px-4 py-5">
-                                        @if (! empty($product->image))
-                                            <img
-                                                src="{{ asset('storage/' .$product->image) }}"
-                                                alt="{{ $product->name }}"
-                                                class="h-12 w-12 rounded border border-zinc-300 object-cover p-0.5"
-                                            >
-                                        @else
-                                            <div class="grid h-12 w-12 place-items-center rounded border border-zinc-300 bg-zinc-100 p-1 shadow-inner">
-                                                <span class="text-sm font-black text-blue-600">{{ strtoupper(substr($product->sku ?? 'P', 0, 2)) }}</span>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-5 text-sm font-extrabold text-slate-700">{{ $product->sku }}</td>
-                                    <td class="px-4 py-5 text-sm font-extrabold text-black">{{ $product->name }}</td>
-                                    <td class="px-4 py-5 text-sm font-extrabold text-slate-700">PKR {{ number_format($product->purchase_price, 2) }}</td>
-                                    <td class="px-4 py-5 text-sm font-extrabold text-slate-700">PKR {{ number_format($product->sale_price, 2) }}</td>
-                                    
-                                    <td class="px-4 py-5">
-                                        <span class="inline-flex min-w-[46px] justify-center rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-extrabold text-white">
-                                            {{ $product->current_stock }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-5">
-                                        <div class="flex items-center justify-end gap-1.5">
-                                            <a
-                                                href="#"
-                                                class="grid h-8 w-8 place-items-center rounded border border-cyan-400 bg-white text-cyan-500 transition hover:bg-cyan-50"
-                                                aria-label="View product"
-                                            >
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-                                                </svg>
-                                            </a>
-                                            <a
-                                                href="#"
-                                                class="grid h-8 w-8 place-items-center rounded border border-blue-500 bg-white text-blue-600 transition hover:bg-blue-50"
-                                                aria-label="Edit product"
-                                            >
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
-                                                </svg>
-                                            </a>
-                                            <form action="#" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button
-                                                    type="button"
-                                                    class="grid h-8 w-8 place-items-center rounded border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-                                                    aria-label="Delete product"
+                @if(!request()->has('action') && $single_product == null)
+                    @if(is_null($displayProducts))
+                        <div class="p-8 text-center text-gray-400 text-lg font-bold">No product found</div>
+                    @else
+                        <table class="min-w-full table-fixed text-left">
+                            <thead class="border-b border-zinc-200 bg-zinc-50">
+                                <tr>
+                                    <th class="w-20 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Image</th>
+                                    <th class="w-36 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">SKU</th>
+                                    <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Name</th>
+                                    <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Purchase Price</th>
+                                    <th class="w-44 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Sale Price</th>
+                                    <th class="w-36 px-4 py-5 text-xs font-extrabold uppercase text-slate-400">Stock</th>
+                                    <th class="w-32 px-4 py-5 text-right text-xs font-extrabold uppercase text-slate-400">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-100">
+                                @foreach ($displayProducts as $product)
+                                    <tr class="bg-white transition hover:bg-zinc-50">
+                                        <td class="px-4 py-5">
+                                            @if (! empty($product->image))
+                                                <img
+                                                    src="{{ asset('storage/' .$product->image) }}"
+                                                    alt="{{ $product->name }}"
+                                                    class="h-12 w-12 rounded border border-zinc-300 object-cover p-0.5"
+                                                >
+                                            @else
+                                                <div class="grid h-12 w-12 place-items-center rounded border border-zinc-300 bg-zinc-100 p-1 shadow-inner">
+                                                    <span class="text-sm font-black text-blue-600">{{ strtoupper(substr($product->sku ?? 'P', 0, 2)) }}</span>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-5 text-sm font-extrabold text-slate-700">{{ $product->sku }}</td>
+                                        <td class="px-4 py-5 text-sm font-extrabold text-black">{{ $product->name }}</td>
+                                        <td class="px-4 py-5 text-sm font-extrabold text-slate-700">PKR {{ number_format($product->purchase_price, 2) }}</td>
+                                        <td class="px-4 py-5 text-sm font-extrabold text-slate-700">PKR {{ number_format($product->sale_price, 2) }}</td>
+                                        
+                                        <td class="px-4 py-5">
+                                            <span class="inline-flex min-w-[46px] justify-center rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-extrabold text-white">
+                                                {{ $product->current_stock }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-5">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <a
+                                                    href="{{ route('admin.product.ledger', ['id' => $product->id]) }}"
+                                                    class="grid h-8 w-8 place-items-center rounded border border-cyan-400 bg-white text-cyan-500 transition hover:bg-cyan-50"
+                                                    aria-label="View product"
                                                 >
                                                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
                                                     </svg>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        
-                    </table>
-                    <div class="mt-4 flex flex-col items-center justify-center">
-                        <div class="mb-2 text-sm text-gray-500">
-                            Showing {{ $products->firstItem() }} to {{ $products->lastItem() }} of {{ $products->total() }} results
+                                                </a>
+                                                
+                                                <a
+                                                    href="{{ route('admin.products', isset($product->id) ? ['id' => $product->id] : []) }}"
+                                                    class="grid h-8 w-8 place-items-center rounded border border-blue-500 bg-white text-blue-600 transition hover:bg-blue-50"
+                                                    aria-label="Edit product"
+                                                >
+                                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+                                                    </svg>
+                                                </a>
+                                                <form action="#" method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button
+                                                        type="button"
+                                                        class="grid h-8 w-8 place-items-center rounded border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                                                        aria-label="Delete product"
+                                                    >
+                                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            
+                        </table>
+                        <div class="mt-4 flex flex-col items-center justify-center">
+                            <div class="mb-2 text-sm text-gray-500">
+                                Showing {{ $products->firstItem() }} to {{ $products->lastItem() }} of {{ $products->total() }} results
+                            </div>
+                            <div class="inline-flex rounded-md shadow-sm border border-gray-200 bg-white">
+                                {{ $products->onEachSide(1)->links() }}
+                            </div>
                         </div>
-                        <div class="inline-flex rounded-md shadow-sm border border-gray-200 bg-white">
-                            {{ $products->onEachSide(1)->links() }}
-                        </div>
-                    </div>
-                @elseif(request()->has('action') && request('action') == 'create')
+                    @endif
+                @elseif(request()->has('action') && request('action') == 'create' || $single_product != null)
                     <div class="p-6">
                         <h2 class="mb-4 text-xl font-bold text-gray-800">Add New Product</h2>
+                        @if ($errors->any())
+                            <div class="mb-4 p-4 rounded bg-red-100 border border-red-300 text-red-700">
+                                <ul class="list-disc pl-5">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                             @csrf
                             <div>
                                 <label for="name" class="block text-sm font-medium text-gray-700">Product Name</label>
-                                <input type="text" name="name" id="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <input type="text" name="name" id="name" value="{{ $product_name }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                             </div>
                             <div>
                                 <label for="sku" class="block text-sm font-medium text-gray-700">SKU</label>
-                                <input type="text" name="sku" id="sku" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <input type="text" name="sku" id="sku" value="{{ $product_sku }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                             </div>
                             <div>
+                                <img src="{{ $product_img }}" alt="" style="max-width: 150px; max-height: 150px;" class="mb-2">
                                 <label for="image" class="block text-sm font-medium text-gray-700">Product Image</label>
                                 <input type="file" name="image" id="image" accept="image/*" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                             </div>
                             <div>
+                                <input type="hidden" name="product_id" value="{{ $single_product->id ?? '' }}">
                                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    Save Product
+                                    @if(request()->has('action') && request('action') == 'create')
+                                        Create Product
+                                    @else
+                                        Update Product
+                                    @endif
                                 </button>
                             </div>
                         </form>

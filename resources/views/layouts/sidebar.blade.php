@@ -1,20 +1,31 @@
         @php
             $menuItems = $menuItems ?? [
-                ['label' => 'Dashboard', 'href' => route('dashboard'), 'active' => true, 'icon' => 'dashboard'],
+                ['label' => 'Dashboard', 'href' => route('dashboard'), 'active' => request()->routeIs('dashboard'), 'icon' => 'dashboard'],
                 ['label' => 'Users', 'href' => '#', 'active' => false, 'icon' => 'users'],
-                ['label' => 'Orders', 'href' => '#', 'active' => false, 'icon' => 'orders'],
                 ['label' => 'Analytics', 'href' => '#', 'active' => false, 'icon' => 'analytics'],
                 ['label' => 'Messages', 'href' => '#', 'active' => false, 'icon' => 'messages'],
                 ['label' => 'Settings', 'href' => '#', 'active' => false, 'icon' => 'settings'],
             ];
 
             $inventoryItems = [
-                ['label' => 'Add Stock', 'href' => route('admin.products')],
-                ['label' => 'Restock', 'href' => '#'],
-                ['label' => 'Product Summary', 'href' => '#'],
-                ['label' => 'Product Movement', 'href' => '#'],
-                ['label' => 'Purchases', 'href' => '#'],
+                ['label' => 'Stock', 'href' => route('admin.products'), 'active' => request()->routeIs('admin.products*')],
+                ['label' => 'Restock', 'href' => route('admin.restock'), 'active' => request()->routeIs('admin.restock*')],
+                ['label' => 'Product Summary', 'href' => route('admin.product.summary'), 'active' => request()->routeIs('admin.product.summary*')],
+                ['label' => 'Product Movement', 'href' => route('admin.product.movement'), 'active' => request()->routeIs('admin.product.movement*')],
+                ['label' => 'Purchases', 'href' => route('admin.purchases'), 'active' => request()->routeIs('admin.purchases*')],
             ];
+
+            $orderItems = [];
+            foreach ([
+                ['label' => 'Make Order', 'route' => 'admin.orders.create'],
+                ['label' => 'Order List', 'route' => 'admin.orders.index'],
+            ] as $item) {
+                $orderItems[] = [
+                    'label' => $item['label'],
+                    'href' => \Illuminate\Support\Facades\Route::has($item['route']) ? route($item['route']) : '#',
+                    'active' => request()->routeIs($item['route']),
+                ];
+            }
         @endphp
             <div
                 x-cloak
@@ -98,6 +109,48 @@
                         <button
                             type="button"
                             class="group flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950"
+                            @click="orderOpen = ! orderOpen"
+                            :aria-expanded="orderOpen.toString()"
+                        >
+                            <span class="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition group-hover:text-zinc-700">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12l2 5H4l2-5Zm-2 5v13h16V8M9 13h6" />
+                                </svg>
+                            </span>
+                            <span class="flex-1">Order</span>
+                            <svg
+                                class="h-4 w-4 text-zinc-400 transition duration-200"
+                                :class="{ 'rotate-180 text-zinc-700': orderOpen }"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </button>
+
+                        <div
+                            x-cloak
+                            x-show="orderOpen"
+                            x-transition
+                            class="mt-1 space-y-1 border-l border-zinc-200 pl-6"
+                        >
+                            @foreach ($orderItems as $item)
+                                <a
+                                    href="{{ $item['href'] }}"
+                                    class="block rounded-lg px-3 py-2 text-sm font-semibold {{ $item['active'] ? 'bg-zinc-100 text-zinc-950 shadow-sm' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950' }} transition"
+                                >
+                                    {{ $item['label'] }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <button
+                            type="button"
+                            class="group flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950"
                             @click="inventoryOpen = ! inventoryOpen"
                             :aria-expanded="inventoryOpen.toString()"
                         >
@@ -129,7 +182,7 @@
                             @foreach ($inventoryItems as $item)
                                 <a
                                     href="{{ $item['href'] }}"
-                                    class="block rounded-lg px-3 py-2 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950"
+                                    class="block rounded-lg px-3 py-2 text-sm font-semibold {{ $item['active'] ? 'bg-zinc-100 text-zinc-950 shadow-sm' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950' }} transition"
                                 >
                                     {{ $item['label'] }}
                                 </a>

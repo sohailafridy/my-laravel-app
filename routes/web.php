@@ -38,8 +38,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/admin/order/create', [OrderController::class, 'create'])->middleware(['auth'])->name('admin.orders.create');
 
 //product routes/inventory routes
-Route::get('/admin/products', [InventoryController::class, 'index'])->middleware(['auth'])->name('admin.products');
-Route::post('/admin/products', [InventoryController::class, 'store'])->middleware(['auth'])->name('admin.products.store');
+Route::get('/admin/stock/products/{id?}', [InventoryController::class, 'index'])->middleware(['auth'])->name('admin.products');
+Route::post('/admin/stock/products', [InventoryController::class, 'store'])->middleware(['auth'])->name('admin.products.store');
+Route::get('/admin/stock/restock', [InventoryController::class, 'restock'])->middleware(['auth'])->name('admin.restock');
+Route::post('/admin/stock/restock', [InventoryController::class, 'restockStore'])->middleware(['auth'])->name('admin.restock.store');
+Route::get('/admin/stock/purchases/{sku?}', [InventoryController::class, 'purchases'])->middleware(['auth'])->name('admin.purchases');
+Route::get('/admin/stock/purchases/reverse/{id}', [InventoryController::class, 'reversePurchase'])->middleware(['auth'])->name('admin.purchases.reverse');
+Route::get('/admin/stock/movement', [InventoryController::class, 'productMovement'])->middleware(['auth'])->name('admin.product.movement');
+Route::get('/admin/stock/summary', [InventoryController::class, 'productSummary'])->middleware(['auth'])->name('admin.product.summary');
+Route::get('/admin/stock/product-ledger/{id}', [InventoryController::class, 'productLedger'])->middleware(['auth'])->name('admin.product.ledger');
+
+
 require __DIR__.'/auth.php';

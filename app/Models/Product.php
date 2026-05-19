@@ -13,5 +13,5 @@ class Product extends Model
 
     protected $guarded = [];
 
-    const UPDATED_AT = null;
+    public $timestamps = false;
 }
