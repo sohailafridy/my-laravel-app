@@ -1,16 +1,36 @@
 <x-app-layout>
-    <x-slot name="title">Create Order</x-slot>
+    <x-slot name="title">Edit Order #{{ $order->id }}</x-slot>
 
     @php
-        $productOptions = $products->map(function ($product) {
+        // Calculate effective stock by adding back the quantity currently in this order
+        $productOptions = $products->map(function ($product) use ($order) {
+            $existingItem = $order->items->firstWhere('product_id', $product->id);
+            $existingQty = $existingItem ? $existingItem->quantity : 0;
+            
             return [
-                'id' => $product->id,
+                'id' => (string) $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
                 'sale_price' => (float) ($product->sale_price ?? 0),
-                'current_stock' => (int) ($product->current_stock ?? 0),
+                'current_stock' => (int) ($product->current_stock ?? 0) + (int) $existingQty,
             ];
         })->values();
+
+        // Prepare existing order items for Alpine.js initialization
+        $orderItemsData = $order->items->map(function ($item) {
+            return [
+                'key' => $item->id,
+                'product_id' => (string) $item->product_id,
+                'price' => (float) $item->unit_price,
+                'qty' => (int) $item->quantity,
+            ];
+        })->values();
+        
+        // Calculate the stored flat discount by subtracting the percentage portion
+        $totalAmountVal = (float) ($order->total_amount ?? 0);
+        $discountPercentVal = (float) ($order->discount_percent ?? 0);
+        $totalDiscountVal = (float) ($order->discount ?? 0);
+        $flatDiscount = max(0, $totalDiscountVal - ($totalAmountVal * ($discountPercentVal / 100)));
     @endphp
 
     <section class="min-h-[calc(100vh-4rem)] bg-zinc-50 px-5 py-7 sm:px-6 lg:px-9">
@@ -20,7 +40,7 @@
             </h1>
 
             <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-center xl:w-auto">
-                <form action="#" method="GET" class="flex h-11 w-full overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-200 sm:w-[315px]">
+                <form action="{{ route('admin.orders.index') }}" method="GET" class="flex h-11 w-full overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-200 sm:w-[315px]">
                     <input
                         type="search"
                         name="search"
@@ -52,10 +72,10 @@
         </div>
 
         <div
-            x-data="orderCreate({{ Illuminate\Support\Js::from($productOptions) }})"
+            x-data="orderEdit({{ Illuminate\Support\Js::from($productOptions) }}, {{ Illuminate\Support\Js::from($orderItemsData) }})"
             class="mx-auto max-w-5xl rounded-xl bg-white px-6 py-6 shadow-sm ring-1 ring-zinc-200 sm:px-8"
         >
-            <h2 class="mb-6 text-xl font-extrabold text-zinc-950">Add New Order</h2>
+            <h2 class="mb-6 text-xl font-extrabold text-zinc-950">Edit Order #{{ $order->id }}</h2>
 
             @if ($errors->any())
                 <div class="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200" role="alert">
@@ -84,7 +104,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('admin.orders.store') }}" method="POST" class="grid gap-6 lg:grid-cols-[304px_minmax(0,1fr)]">
+            <form action="{{ route('admin.orders.update', $order->id) }}" method="POST" class="grid gap-6 lg:grid-cols-[304px_minmax(0,1fr)]">
                 @csrf
 
                 <aside class="rounded-xl bg-zinc-50 p-4 shadow-md ring-1 ring-zinc-100">
@@ -109,7 +129,7 @@
                             >
                                 <option value="">Select Customer...</option>
                                 @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}">
+                                    <option value="{{ $customer->id }}" {{ ($order->customer && $order->customer->id === $customer->id) ? 'selected' : '' }}>
                                         {{ $customer->name }}{{ $customer->phone ? ' - '.$customer->phone : '' }}
                                     </option>
                                 @endforeach
@@ -369,10 +389,10 @@
                             :class="hasStockError ? 'opacity-50 cursor-not-allowed bg-zinc-400 hover:bg-zinc-400' : 'bg-blue-600 hover:bg-blue-700'"
                             class="inline-flex h-10 items-center justify-center rounded-md px-12 text-base font-extrabold text-white shadow-sm transition sm:min-w-[216px]"
                         >
-                            Complete Order
+                            Update Order
                         </button>
                         <a
-                            href="{{ route('dashboard') }}"
+                            href="{{ route('admin.orders.index') }}"
                             class="inline-flex h-10 items-center justify-center rounded-md bg-zinc-50 px-7 text-base font-medium text-zinc-950 transition hover:bg-zinc-100"
                         >
                             Cancel
@@ -384,21 +404,21 @@
     </section>
 
     <script>
-        function orderCreate(products) {
+        function orderEdit(products, initialRows) {
             return {
                 products: products,
-                rows: [{ key: Date.now(), product_id: '', price: 0, qty: 1, searchQuery: '', isOpen: false }],
-                outsideCustomer: false,
+                rows: initialRows.map(r => ({ ...r, searchQuery: '', isOpen: false })),
+                outsideCustomer: {{ ($order->customer && $order->customer->customer_type === 'outside') ? 'true' : 'false' }},
                 // Outside customer fields
-                outsideCustomerName: '',
-                outsideCustomerPhone: '',
-                outsideCustomerCnic: '',
-                outsideCustomerEmail: '',
-                outsideCustomerFromAddress: '',
-                outsideCustomerToAddress: '',
-                discountPercent: 0,
-                orderDiscount: 0,
-                paidAmount: 0,
+                outsideCustomerName: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->name) : "" }}',
+                outsideCustomerPhone: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->phone) : "" }}',
+                outsideCustomerCnic: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->cnic) : "" }}',
+                outsideCustomerEmail: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->email) : "" }}',
+                outsideCustomerFromAddress: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->from_add) : "" }}',
+                outsideCustomerToAddress: '{{ ($order->customer && $order->customer->customer_type === "outside") ? e($order->customer->to_add) : "" }}',
+                discountPercent: {{ (float) ($order->discount_percent ?? 0) }},
+                orderDiscount: {{ (float) $flatDiscount }},
+                paidAmount: {{ (float) ($order->paid_amount ?? 0) }},
                 addRow() {
                     if (this.rows.length < this.products.length) {
                         this.rows.push({ key: Date.now() + Math.random(), product_id: '', price: 0, qty: 1, searchQuery: '', isOpen: false });

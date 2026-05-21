@@ -14,4 +14,15 @@ class Order extends Model
     protected $guarded = [];
 
     const UPDATED_AT = null;
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'user_id', 'user_id');
+    }
 }
+

@@ -14,4 +14,10 @@ class OrderItem extends Model
     protected $guarded = [];
 
     const UPDATED_AT = null;
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 }
+

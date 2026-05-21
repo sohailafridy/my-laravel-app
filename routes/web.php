@@ -38,7 +38,30 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+
+//Orders
 Route::get('/admin/order/create', [OrderController::class, 'create'])->middleware(['auth'])->name('admin.orders.create');
+Route::post('/admin/order/store', [OrderController::class, 'store'])->middleware(['auth'])->name('admin.orders.store');
+Route::get('/admin/order/list', [OrderController::class, 'list'])->middleware(['auth'])->name('admin.orders.list');
+Route::get('/admin/order/invoice/{id}', [OrderController::class, 'invoice'])->middleware(['auth'])->name('order.invoice');
+Route::get('/admin/orders/list', [OrderController::class, 'list'])->middleware(['auth'])->name('admin.orders.index');
+Route::get('/admin/order/edit/{id}', [OrderController::class, 'edit'])->middleware(['auth'])->name('admin.orders.edit');
+Route::post('/admin/order/update/{id}', [OrderController::class, 'update'])->middleware(['auth'])->name('admin.orders.update');
+Route::post('/admin/order/pay/{id}', [OrderController::class, 'recordPayment'])->middleware(['auth'])->name('admin.orders.pay');
+
+
+Route::get('/admin/customer/ledger/{customer}', [CustomerController::class, 'ledger'])->middleware(['auth'])->name('admin.customer.ledger');
+Route::get('/admin/customers/outstanding-dues', [CustomerController::class, 'dues'])->middleware(['auth'])->name('admin.customers.dues');
+Route::post('/admin/customers/pay-dues/{customer}', [CustomerController::class, 'recordCustomerDuesPayment'])->middleware(['auth'])->name('admin.customers.pay-dues');
+Route::get('/admin/customers/list/{type?}', [CustomerController::class, 'index'])->middleware(['auth'])->name('admin.customers.list');
+
+// Expenses
+Route::get('/admin/expenses', [ExpenseController::class, 'index'])->middleware(['auth'])->name('admin.expenses.index');
+Route::post('/admin/expenses/store', [ExpenseController::class, 'store'])->middleware(['auth'])->name('admin.expenses.store');
+Route::get('/admin/expenses/categories', [ExpenseController::class, 'categories'])->middleware(['auth'])->name('admin.expenses.categories');
+Route::post('/admin/expenses/categories/store', [ExpenseController::class, 'storeCategory'])->middleware(['auth'])->name('admin.expenses.categories.store');
+
+
 
 //product routes/inventory routes
 Route::get('/admin/stock/products/{id?}', [InventoryController::class, 'index'])->middleware(['auth'])->name('admin.products');
