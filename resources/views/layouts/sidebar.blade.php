@@ -18,6 +18,7 @@
             foreach ([
                 ['label' => 'Make Order', 'route' => 'admin.orders.create'],
                 ['label' => 'Order List', 'route' => 'admin.orders.index'],
+                ['label' => 'Canceled Orders', 'route' => 'admin.orders.cancelled'],
             ] as $item) {
                 $orderItems[] = [
                     'label' => $item['label'],

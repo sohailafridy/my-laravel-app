@@ -48,6 +48,8 @@ Route::get('/admin/orders/list', [OrderController::class, 'list'])->middleware([
 Route::get('/admin/order/edit/{id}', [OrderController::class, 'edit'])->middleware(['auth'])->name('admin.orders.edit');
 Route::post('/admin/order/update/{id}', [OrderController::class, 'update'])->middleware(['auth'])->name('admin.orders.update');
 Route::post('/admin/order/pay/{id}', [OrderController::class, 'recordPayment'])->middleware(['auth'])->name('admin.orders.pay');
+Route::delete('/admin/order/delete/{id}', [OrderController::class, 'destroy'])->middleware(['auth'])->name('admin.orders.destroy');
+Route::get('/admin/orders/cancelled', [OrderController::class, 'cancelledList'])->middleware(['auth'])->name('admin.orders.cancelled');
 
 
 Route::get('/admin/customer/ledger/{customer}', [CustomerController::class, 'ledger'])->middleware(['auth'])->name('admin.customer.ledger');

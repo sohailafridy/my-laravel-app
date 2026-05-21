@@ -9,15 +9,15 @@ class AdminController extends Controller
 {
     public function index()
     {
-        // 1. Fetch real Stats
-        $totalRevenue = (float) \App\Models\Order::sum('final_amount');
+        // 1. Fetch real Stats excluding cancelled orders
+        $totalRevenue = (float) \App\Models\Order::where('status', '!=', 'cancelled')->sum('final_amount');
         $recoveredDues = (float) \App\Models\Payment::sum('amount');
-        $outstandingDues = (float) \App\Models\Order::sum('remaining_amount');
+        $outstandingDues = (float) \App\Models\Order::where('status', '!=', 'cancelled')->sum('remaining_amount');
         $totalExpenses = (float) \App\Models\Expense::sum('amount');
         $netProfit = $totalRevenue - $totalExpenses; // sales minus overhead expenses
         
         $activeCustomersCount = \App\Models\Customer::count();
-        $pendingOrdersCount = \App\Models\Order::where('remaining_amount', '>', 0)->count();
+        $pendingOrdersCount = \App\Models\Order::where('status', '!=', 'cancelled')->where('remaining_amount', '>', 0)->count();
 
         // 2. Fetch Low Stock warnings (stock <= 15)
         $lowStockProducts = \App\Models\Product::where('current_stock', '<=', 15)
@@ -25,8 +25,9 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        // 3. Fetch recent payments/orders for activity log
+        // 3. Fetch recent payments/orders for activity log (excluding cancelled orders)
         $recentOrders = \App\Models\Order::with('customer')
+            ->where('status', '!=', 'cancelled')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
@@ -60,7 +61,8 @@ class AdminController extends Controller
         $monthlySales = [];
         for ($i = 11; $i >= 0; $i--) {
             $month = Carbon::now()->subMonths($i);
-            $sales = \App\Models\Order::whereMonth('created_at', $month->month)
+            $sales = \App\Models\Order::where('status', '!=', 'cancelled')
+                ->whereMonth('created_at', $month->month)
                 ->whereYear('created_at', $month->year)
                 ->sum('final_amount');
             $monthlySales[] = [

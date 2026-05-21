@@ -164,7 +164,11 @@
                                     </td>
                                     <!-- Status -->
                                     <td class="px-6 py-4 text-center">
-                                        @if($order->remaining_amount <= 0)
+                                        @if($order->status === 'cancelled')
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-extrabold bg-zinc-100 text-zinc-800 border border-zinc-200 uppercase tracking-wide">
+                                                Cancelled
+                                            </span>
+                                        @elseif($order->remaining_amount <= 0)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wide">
                                                 Cleared
                                             </span>
@@ -181,7 +185,7 @@
                                     <!-- Action Button -->
                                     <td class="px-6 py-4 text-center print:hidden">
                                         <div class="flex items-center justify-center gap-2">
-                                            @if($order->remaining_amount > 0)
+                                            @if($order->remaining_amount > 0 && $order->status !== 'cancelled')
                                                 <button 
                                                     type="button" 
                                                     @click="openPayModal({{ $order->id }}, {{ $order->remaining_amount }})"

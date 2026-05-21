@@ -38,6 +38,18 @@
     </style>
 
     <div class="invoice-wrapper min-h-[calc(100vh-4rem)] bg-zinc-50 py-8 px-4 sm:px-6 lg:px-8 print:bg-white print:py-0 print:px-0">
+        @if($order->status === 'cancelled')
+            <div class="max-w-3xl mx-auto mb-6 rounded-lg bg-zinc-100 p-4 text-sm text-zinc-800 border border-zinc-200 flex items-center justify-between print:hidden" role="alert">
+                <div class="flex items-center font-bold">
+                    <svg class="h-5 w-5 mr-2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    <span>This order is cancelled. Stock levels and product summaries have been reverted.</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-zinc-200 text-zinc-800 uppercase border border-zinc-300">Cancelled</span>
+            </div>
+        @endif
+
         <!-- Control panel for screen only -->
         <div class="max-w-3xl mx-auto mb-6 flex items-center justify-between print:hidden">
             <a href="{{ route('admin.orders.list') }}" class="inline-flex items-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition">
@@ -47,12 +59,28 @@
                 Back to Orders
             </a>
 
-            <button onclick="window.print()" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Invoice
-            </button>
+            <div class="flex items-center gap-3">
+                <!-- Cancel Order Button -->
+                @if($order->status !== 'cancelled')
+                <form action="{{ route('admin.orders.destroy', $order->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel Order #{{ $order->id }}? This will revert product stock, product summaries, and remove associated payment records.')" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-rose-600 hover:bg-rose-700 px-5 py-2 text-sm font-bold text-white shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        Cancel Order
+                    </button>
+                </form>
+                @endif
+
+                <button onclick="window.print()" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print Invoice
+                </button>
+            </div>
         </div>
 
         <!-- Main Invoice Container -->
@@ -65,7 +93,12 @@
                     <p class="text-xs font-semibold text-zinc-500 mt-1.5">{{ \Carbon\Carbon::parse($order->created_at)->format('F d, Y H:i') }}</p>
                 </div>
                 <div>
-                    <h2 class="text-xl font-black text-blue-600 tracking-tight">Zamzam2 Inc.</h2>
+                    <h2 class="text-xl font-black text-blue-600 tracking-tight flex items-center gap-2">
+                        @if($order->status === 'cancelled')
+                            <span class="inline-flex px-2 py-0.5 rounded text-xs font-black bg-rose-50 text-rose-700 border border-rose-100 uppercase tracking-widest print:inline-flex">Cancelled</span>
+                        @endif
+                        Zamzam2 Inc.
+                    </h2>
                 </div>
             </div>
 
@@ -100,7 +133,11 @@
                 <div class="md:text-right flex flex-col md:items-end justify-start">
                     <h3 class="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-3">PAYMENT STATUS</h3>
                     <div>
-                        @if ($order->remaining_amount <= 0)
+                        @if ($order->status === 'cancelled')
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200 uppercase tracking-wider">
+                                Cancelled
+                            </span>
+                        @elseif ($order->remaining_amount <= 0)
                             <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 uppercase tracking-wider">
                                 Paid
                             </span>

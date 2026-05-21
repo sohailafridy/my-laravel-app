@@ -186,7 +186,7 @@ class OrderController extends Controller
 
     public function list()
     {
-        $query = Order::with(['items.product', 'customer']);
+        $query = Order::with(['items.product', 'customer'])->where('status', '!=', 'cancelled');
 
         if (request()->has('search') && request()->get('search') !== '') {
             $search = request()->get('search');
@@ -200,6 +200,24 @@ class OrderController extends Controller
 
         $orders = $query->orderBy('id', 'desc')->get();
         return view('admin.orders.list', compact('orders'));
+    }
+
+    public function cancelledList()
+    {
+        $query = Order::with(['items.product', 'customer'])->where('status', 'cancelled');
+
+        if (request()->has('search') && request()->get('search') !== '') {
+            $search = request()->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $orders = $query->orderBy('id', 'desc')->get();
+        return view('admin.orders.cancelled', compact('orders'));
     }
 
     public function invoice($id)
@@ -436,6 +454,58 @@ class OrderController extends Controller
         });
 
         return redirect()->back()->with('success', 'Payment recorded successfully.');
+    }
+
+    public function destroy($id)
+    {
+        $order = Order::findOrFail($id);
+
+        try {
+            DB::transaction(function () use ($order) {
+                // 1. Restore old stock for all products in this order and revert summaries
+                $oldItems = OrderItem::where('order_id', $order->id)->get();
+                foreach ($oldItems as $oldItem) {
+                    $prod = Product::find($oldItem->product_id);
+                    if ($prod) {
+                        $prod->current_stock = (int) $prod->current_stock + (int) $oldItem->quantity;
+                        $prod->save();
+                        
+                        // Adjust summary (subtract old sold/revenue/profit)
+                        $summary = ProductSummary::where('product_id', $prod->id)->first();
+                        if ($summary) {
+                            $oldLineCost = ((float) ($prod->purchase_price ?? 0)) * $oldItem->quantity;
+                            $summary->total_sold = max(0, ((int) $summary->total_sold) - $oldItem->quantity);
+                            $summary->total_revenue = max(0, ((float) $summary->total_revenue) - $oldItem->final_price);
+                            $summary->total_profit = ((float) $summary->total_profit) - ($oldItem->final_price - $oldLineCost);
+                            $summary->current_stock = $prod->current_stock;
+                            $summary->save();
+                        }
+                    }
+                }
+
+                // 2. Revert stock movements: delete the stock movements with reference_id = order_id and type = 'out'
+                StockMovement::where('reference_id', $order->id)->where('type', 'out')->delete();
+
+                // 3. Delete related payments associated with this order_id
+                Payment::where('order_id', $order->id)->delete();
+
+                // 4. Update the order status to cancelled and clear amounts to prevent active dues
+                $order->update([
+                    'status' => 'cancelled',
+                    'paid_amount' => 0,
+                    'remaining_amount' => 0,
+                    'remaining_amount_fixed' => 0,
+                ]);
+            });
+
+            return redirect()
+                ->route('admin.orders.list')
+                ->with('success', 'Order #' . $id . ' cancelled successfully.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to cancel the order. Error: ' . $e->getMessage());
+        }
     }
 }
 

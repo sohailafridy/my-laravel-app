@@ -23,13 +23,14 @@ class CustomerController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Calculate statistics
-        $totalVolume = (float) $orders->sum('final_amount');
-        $totalSavings = (float) $orders->sum('discount');
-        $outstandingBalance = (float) $orders->sum('remaining_amount');
+        // Calculate statistics, excluding cancelled orders
+        $activeOrders = $orders->where('status', '!=', 'cancelled');
+        $totalVolume = (float) $activeOrders->sum('final_amount');
+        $totalSavings = (float) $activeOrders->sum('discount');
+        $outstandingBalance = (float) $activeOrders->sum('remaining_amount');
         
         // Total paid includes paid amount on orders + manual payments not linked to orders (to prevent double counting when order payments update order's paid_amount)
-        $totalPaid = (float) ($orders->sum('paid_amount') + $payments->whereNull('order_id')->sum('amount'));
+        $totalPaid = (float) ($activeOrders->sum('paid_amount') + $payments->whereNull('order_id')->sum('amount'));
 
         return view('admin.customer-ledger', compact(
             'customer',
@@ -77,21 +78,24 @@ class CustomerController extends Controller
 
     public function dues()
     {
-        // Fetch all customers who have a total remaining balance > 0 in their orders
+        // Fetch all customers who have a total remaining balance > 0 in their non-cancelled orders
         $customers = Customer::select('customers.*')
             ->selectSub(function ($query) {
                 $query->from('orders')
                     ->whereColumn('orders.user_id', 'customers.user_id')
+                    ->where('status', '!=', 'cancelled')
                     ->selectRaw('SUM(remaining_amount)');
             }, 'total_dues')
             ->selectSub(function ($query) {
                 $query->from('orders')
                     ->whereColumn('orders.user_id', 'customers.user_id')
+                    ->where('status', '!=', 'cancelled')
                     ->selectRaw('COUNT(*)');
             }, 'total_orders')
             ->selectSub(function ($query) {
                 $query->from('orders')
                     ->whereColumn('orders.user_id', 'customers.user_id')
+                    ->where('status', '!=', 'cancelled')
                     ->where('remaining_amount', '>', 0)
                     ->selectRaw('COUNT(*)');
             }, 'pending_orders')
@@ -104,8 +108,8 @@ class CustomerController extends Controller
 
     public function recordCustomerDuesPayment(Request $request, Customer $customer)
     {
-        // Calculate current total outstanding dues
-        $totalDues = Order::where('user_id', $customer->user_id)->sum('remaining_amount');
+        // Calculate current total outstanding dues excluding cancelled orders
+        $totalDues = Order::where('user_id', $customer->user_id)->where('status', '!=', 'cancelled')->sum('remaining_amount');
 
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01', 'max:' . $totalDues],
@@ -117,8 +121,9 @@ class CustomerController extends Controller
         $remainingPayment = (float) $data['amount'];
 
         DB::transaction(function () use ($customer, $data, &$remainingPayment) {
-            // Fetch pending orders, oldest first
+            // Fetch pending non-cancelled orders, oldest first
             $pendingOrders = Order::where('user_id', $customer->user_id)
+                ->where('status', '!=', 'cancelled')
                 ->where('remaining_amount', '>', 0)
                 ->orderBy('created_at', 'asc')
                 ->get();
