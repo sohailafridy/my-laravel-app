@@ -87,6 +87,19 @@
                         <span>Dashboard</span>
                     </a>
 
+                    <!-- Reports Link -->
+                    <a
+                        href="{{ route('admin.reports.index') }}"
+                        class="{{ request()->routeIs('admin.reports*') ? 'bg-zinc-950 text-white shadow-sm' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950' }} group flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition"
+                    >
+                        <span class="{{ request()->routeIs('admin.reports*') ? 'text-teal-300' : 'text-zinc-400 group-hover:text-zinc-700' }} grid h-8 w-8 place-items-center rounded-lg transition">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                            </svg>
+                        </span>
+                        <span>Reports</span>
+                    </a>
+
                     <!-- Collapsible Users Link (Bold) -->
                     <div class="pt-1">
                         <button

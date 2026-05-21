@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TestController;
 
 /*
@@ -62,6 +63,9 @@ Route::get('/admin/expenses', [ExpenseController::class, 'index'])->middleware([
 Route::post('/admin/expenses/store', [ExpenseController::class, 'store'])->middleware(['auth'])->name('admin.expenses.store');
 Route::get('/admin/expenses/categories', [ExpenseController::class, 'categories'])->middleware(['auth'])->name('admin.expenses.categories');
 Route::post('/admin/expenses/categories/store', [ExpenseController::class, 'storeCategory'])->middleware(['auth'])->name('admin.expenses.categories.store');
+
+// Reports
+Route::get('/admin/reports', [ReportController::class, 'index'])->middleware(['auth'])->name('admin.reports.index');
 
 
 
